@@ -1,0 +1,40 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: intel-vllm-tool-calling
+  title: intel-vllm-tool-calling
+  description: "Migrate the existing Tool Calling guided lab into Publishing
+    House. Learners connect to a platform-managed tool-capable model, implement
+    the tool-call protocol, build a Python dispatch loop and test multi-tool
+    behavior. Standalone CPU serving remains in rhpds/vllm-tool-calling. PH
+    generates AgnosticV and owns RHDP onboarding; Dallas is the dev test
+    environment. Tracking: GPTEINFRA-17784 and INTEL-47."
+  annotations:
+    ph.rhdp.io/content-type: lab
+    ph.rhdp.io/deployment-mode: rhdp_published
+    ph.rhdp.io/github-user: jkershawrh
+    ph.rhdp.io/owner: jkershaw@redhat.com
+    ph.rhdp.io/migrated-repo: https://github.com/rhpds/showroom-intel-vllm-tool-calling
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: rhpds/intel-vllm-tool-calling
+    ph.rhdp.io/created-at: 2026-10-20T13:36:51.573Z
+  tags:
+    - publishing-house
+    - lab
+    - rhdp-published
+    - migration
+  links:
+    - url: https://github.com/rhpds/intel-vllm-tool-calling
+      title: Repository
+      icon: github
+    - url: https://devspaces.apps.ocpv-infra02.wdc07.infra.demo.redhat.com#https://github.com/rhpds/intel-vllm-tool-calling
+      title: Open in DevSpaces
+      icon: catalog
+    - url: https://central-api-publishing-house.apps.ocpv-infra02.wdc07.infra.demo.redhat.com
+      title: Central
+      icon: dashboard
+spec:
+  type: content
+  lifecycle: experimental
+  owner: rhdp-team
+  system: publishing-house
