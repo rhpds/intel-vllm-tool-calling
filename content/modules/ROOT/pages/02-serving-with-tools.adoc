@@ -34,7 +34,7 @@ When serving a tool-calling model with vLLM, three flags enable the capability:
 
 The key insight: *tool calling is a model capability enabled by the serving layer*. The model must be trained for tool calling, and the server must be configured to parse its output format. Neither alone is sufficient.
 
-In this lab, the Red Hat Demo Platform provides a pre-hosted model via MaaS (Model as a Service). The vLLM server is already running on Intel Xeon 6 hardware with these flags enabled -- so you can focus on building the tool calling application rather than managing infrastructure.
+In this lab, the Red Hat Demo Platform provides a pre-hosted model via MaaS (Model as a Service). The serving service is configured for the allocated tool-capable model -- so you can focus on building the tool calling application rather than managing infrastructure.
 
 == Do: Access the Cluster
 
@@ -76,14 +76,22 @@ echo "Model URL: $\{MODEL_URL\}"
 echo "Model Name: $\{MODEL_NAME\}"
 ----
 
-The MaaS endpoint serves {maas_model} on Intel Xeon 6 hardware with tool calling support already enabled. All inference in this lab runs through this endpoint -- $0 per token, no GPU required.
+The MaaS endpoint serves {maas_model} with tool calling support. The lab does not allocate a GPU to the learner. Backend hardware and cost must be confirmed by the platform owner; the model name alone does not establish CPU placement or zero cost.
 
 Install the Python OpenAI client library (you will need it in later modules):
 
 [source,bash,role="execute"]
 ----
-pip install --quiet openai
+python3 -m venv "$HOME/tool-calling-venv"
+. "$HOME/tool-calling-venv/bin/activate"
+python -m pip install --quiet openai
+python -c 'import openai; print("OpenAI client ready")'
 ----
+
+If `python3` or the `venv` module is missing, stop and report the terminal
+image to the lab administrator. Do not install system packages or require
+cluster-admin access. Reopen the virtual environment in each new terminal:
+`. "$HOME/tool-calling-venv/bin/activate"`.
 
 == Do: Verify the Model
 
@@ -96,6 +104,11 @@ curl -s $\{MODEL_URL\}/models \
 ----
 
 You should see your model listed in the JSON response.
+
+[IMPORTANT]
+====
+A listed model and a successful chat completion do not prove tool calling. Module 3 must return a structured `tool_calls` entry with valid arguments. If the server reports that `--enable-auto-tool-choice` or `--tool-call-parser` is missing, the platform owner must fix the serving configuration or allocate a tested endpoint. Do not treat plain-text tool descriptions as a successful tool call.
+====
 
 Send a basic chat completion (no tools) to confirm the model is healthy:
 

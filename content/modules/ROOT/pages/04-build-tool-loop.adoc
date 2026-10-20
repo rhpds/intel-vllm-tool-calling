@@ -251,7 +251,7 @@ The description is an instruction to the model. Write it like you are telling a 
 |Symptom |Resolution
 
 |`ModuleNotFoundError: No module named 'openai'`
-|The OpenAI library was not installed. Run `pip install openai` from Module 2.
+|The OpenAI library was not installed. Activate `$HOME/tool-calling-venv` and run `python -m pip install openai` from Module 2.
 
 |`KeyError: 'MODEL_URL'`
 |Environment variables are not set. Re-run the export commands from Module 2.
