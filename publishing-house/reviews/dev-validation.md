@@ -11,3 +11,5 @@ Dallas OCP 4.18.16 is a dev environment, separate from the proposed published ta
 - Full tool-result round trip remains blocked on that endpoint.
 
 Source fixes and this migration draft need author/reviewer acceptance. No workstream is marked complete.
+
+Migrated Showroom site builds successfully with Antora 3.1.14. Identity/module duration checks, YAML parsing and whitespace checks pass. Matching PH workflow notes and writable Jira records retain the remaining gates.
