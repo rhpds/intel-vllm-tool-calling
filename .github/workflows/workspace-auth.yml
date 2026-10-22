@@ -1,0 +1,19 @@
+name: Publishing House workspace auth checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  workspace-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned test dependencies
+        run: python -m pip install -r qa-automation/workspace-auth-requirements.txt
+      - name: Verify actual devfile bootstrap with synthetic credentials
+        run: python -m pytest qa-automation/tests/test_workspace_auth.py -q
