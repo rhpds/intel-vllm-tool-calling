@@ -43,6 +43,7 @@ from openai import OpenAI
 client = OpenAI(
     base_url=os.environ["MODEL_URL"],
     api_key=os.environ["MODEL_API_KEY"],
+    timeout=60, max_retries=1,
 )
 MODEL = os.environ["MODEL_NAME"]
 
@@ -90,7 +91,7 @@ def get_weather(location: str) -> dict:
     for city, weather in data.items():
         if city.lower() in location.lower():
             return weather
-    return {"temp": 20, "unit": "C", "condition": "unknown location"}
+    return {"error": "Location is not in this synthetic dataset"}
 
 def lookup_employee(name: str) -> dict:
     """Simulates a database query."""
@@ -109,13 +110,29 @@ TOOL_FUNCTIONS = {
 }
 
 # --- The Tool Calling Loop ---
-def run_query(user_message: str):
+def dispatch_tool(name, arguments):
+    # Treat model-produced arguments as untrusted input. Only these read-only
+    # synthetic functions are allowed; never evaluate model-produced code.
+    if name not in TOOL_FUNCTIONS:
+        return {"error": "Unknown function"}
+    try:
+        args = json.loads(arguments)
+        expected = "location" if name == "get_weather" else "name"
+        if not isinstance(args, dict) or set(args) != {expected} or not isinstance(args[expected], str) or not args[expected].strip():
+            return {"error": "Invalid function arguments"}
+        return TOOL_FUNCTIONS[name](**args)
+    except (ValueError, TypeError):
+        return {"error": "Invalid function arguments"}
+
+
+def run_query(user_message: str, expected_tool=None):
     print(f"\n{'='*60}")
     print(f"USER: {user_message}")
     print(f"{'='*60}")
 
     messages = [{"role": "user", "content": user_message}]
     iteration = 0
+    completed_tools = set()
 
     while iteration < 5:  # Guard rail: max 5 iterations
         # Step 1: Send request with tools
@@ -129,7 +146,11 @@ def run_query(user_message: str):
 
         # Step 2: Check for tool calls
         if not msg.tool_calls:
-            # No tool calls -- this is the final answer
+            # A plausible answer is not proof that a required tool ran.
+            if expected_tool and expected_tool not in completed_tools:
+                raise RuntimeError("Required tool did not complete successfully; check model/parser allocation")
+            if not isinstance(msg.content, str) or not msg.content.strip():
+                raise RuntimeError("Model returned an empty final answer")
             print(f"\nASSISTANT: {msg.content}")
             return msg.content
 
@@ -138,14 +159,10 @@ def run_query(user_message: str):
 
         for tc in msg.tool_calls:
             fn_name = tc.function.name
-            fn_args = json.loads(tc.function.arguments)
-            print(f"\n  [TOOL CALL] {fn_name}({json.dumps(fn_args)})")
-
-            # Step 4: Dispatch to the right function
-            if fn_name in TOOL_FUNCTIONS:
-                result = TOOL_FUNCTIONS[fn_name](**fn_args)
-            else:
-                result = {"error": f"Unknown function: {fn_name}"}
+            result = dispatch_tool(fn_name, tc.function.arguments)
+            if "error" not in result:
+                completed_tools.add(fn_name)
+            print(f"\n  [TOOL CALL] {fn_name}")
 
             result_str = json.dumps(result)
             print(f"  [RESULT]    {result_str}")
@@ -160,12 +177,11 @@ def run_query(user_message: str):
         iteration += 1
         # Loop back to Step 1 -- send updated history to model
 
-    print("\n  [WARNING] Max iterations reached")
-    return None
+    raise RuntimeError("Tool round limit reached without a final answer")
 
 # --- Run Three Queries ---
-run_query("What is the weather in Paris?")
-run_query("Look up Alice Johnson and tell me her role.")
+run_query("What is the weather in Paris?", expected_tool="get_weather")
+run_query("Look up Alice Johnson and tell me her role.", expected_tool="lookup_employee")
 run_query("What is the capital of Japan?")
 PYEOF
 ----
@@ -263,7 +279,7 @@ The description is an instruction to the model. Write it like you are telling a 
 |The model may be calling the same tool repeatedly. Check the tool descriptions for ambiguity. Also verify the tool result is being appended correctly to the message history.
 
 |JSON decode error on `tc.function.arguments`
-|The model may have returned malformed JSON in the arguments. This can happen with smaller models. Try a different query or a larger model.
+|The dispatch boundary returns a structured error for invalid JSON or argument types. Inspect the tool trace. Ask the owner for a qualified model/parser configuration if valid tool calls cannot be produced; do not accept a text-only answer as tool execution.
 |===
 
 == Checkpoint

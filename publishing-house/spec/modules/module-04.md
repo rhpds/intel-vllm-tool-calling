@@ -1,10 +1,8 @@
 # Module 4: Build the Tool Calling Loop
 
-Migration source: `content/modules/ROOT/pages/04-build-tool-loop.adoc`.
+Learner source: `content/modules/ROOT/pages/04-build-tool-loop.adoc`.
 
-Planned time: 20 minutes.
-
-Existing exercise sections:
+Revised review outline:
 
 - Know: From Manual Steps to Production Code
 - The Dispatch Pattern
@@ -14,4 +12,4 @@ Existing exercise sections:
 - The Key Insight
 - Checkpoint
 
-Acceptance: replay the source steps, verify observable results and obtain author/reviewer acceptance. Existing content is retained; migration does not mark this module complete.
+Acceptance: replay the current learner source, retain observable evidence, and obtain author/reviewer acceptance. Offline contract tests do not establish a successful live learner run.

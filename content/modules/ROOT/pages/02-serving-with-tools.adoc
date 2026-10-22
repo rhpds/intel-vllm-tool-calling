@@ -76,7 +76,7 @@ echo "Model URL: $\{MODEL_URL\}"
 echo "Model Name: $\{MODEL_NAME\}"
 ----
 
-The MaaS endpoint serves {maas_model} with tool calling support. The lab does not allocate a GPU to the learner. Backend hardware and cost must be confirmed by the platform owner; the model name alone does not establish CPU placement or zero cost.
+The assigned MaaS model is {maas_model}; its tool capability must pass Module 3 before continuing. The lab does not allocate a GPU to the learner. Backend hardware and cost must be confirmed by the platform owner; the model name alone does not establish CPU placement or zero cost.
 
 Install the Python OpenAI client library (you will need it in later modules):
 
@@ -126,9 +126,9 @@ curl -s $\{MODEL_URL\}/chat/completions \
   }' | python3 -m json.tool
 ----
 
-You should receive a natural language response. This confirms the endpoint is healthy and ready for tool calling in the next module.
+You should receive a natural language response. This confirms basic generation only. Structured tool-call acceptance is still required in Module 3.
 
-=== Verify: Model is Ready for Tool Calling
+=== Verify: Basic Generation Works
 
 You should see:
 
