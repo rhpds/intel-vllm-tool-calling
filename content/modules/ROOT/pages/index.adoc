@@ -1,18 +1,18 @@
 = Build an AI Tool Calling System from Scratch
 
-Welcome to the *vLLM Tool Calling on OpenShift AI* lab. In this hands-on workshop you will build a complete tool calling system -- from understanding the protocol, to deploying a model, to writing an automated multi-tool application. Everything runs on {intel_platform} processors.
+Welcome to the *vLLM Tool Calling on OpenShift AI* lab. In this hands-on workshop you will build a complete tool calling system -- from understanding the protocol, to deploying a model, to writing an automated multi-tool application. The guided path connects to a platform-managed MaaS model; standalone CPU deployment is a separate quickstart profile.
 
 == The Scenario
 
 Your team is building an internal AI assistant for operations staff. The assistant must do more than chat -- it needs to look up employee records, check inventory systems, and query live data from external APIs. Today, staff switch between five different tools to answer one customer question. You are building an assistant that calls those tools automatically.
 
-The challenge: most tool calling tutorials assume expensive GPU hardware. In this lab you will prove that an {intel_platform} CPU can handle agentic AI workloads -- because tool calling's stop-and-go pattern (short model outputs, long tool execution waits) plays to CPU strengths, not GPU strengths.
+The challenge is to make model-selected tools reliable and observable. You will build the protocol step by step, then identify the serving evidence needed to evaluate an Intel CPU deployment.
 
 == What You Will BUILD
 
 By the end of this lab you will have constructed:
 
-* A connection to *{maas_model}* via Model as a Service -- tool calling enabled, running on Intel Xeon 6 via MaaS
+* A connection to *{maas_model}* via Model as a Service -- with tool calling enabled
 * The complete *6-step tool calling protocol*, executed by hand so you understand every piece
 * An *automated dispatch loop* in Python that handles the tool call lifecycle
 * A *multi-tool application* where the model chains multiple function calls to answer complex questions
@@ -62,7 +62,7 @@ The model never executes code. It produces structured JSON requests. Your applic
 | Component | Purpose
 
 | *Model as a Service (MaaS)*
-| Pre-hosted {maas_model} on Intel Xeon 6 with `--enable-auto-tool-choice`. Exposes an OpenAI-compatible `/v1/chat/completions` endpoint. $0 per token.
+| Platform-managed {maas_model} with tool calling enabled. Exposes an authenticated OpenAI-compatible `/v1/chat/completions` endpoint. Hardware placement and charges are confirmed by the platform owner.
 
 | *OpenShift AI*
 | Provides the platform, namespace isolation, and console access.
@@ -73,7 +73,7 @@ The model never executes code. It produces structured JSON requests. Your applic
 
 == Time Estimate
 
-This lab takes approximately *90 minutes* to complete:
+This lab takes approximately *100 minutes* to complete:
 
 [cols="1,3,1"]
 |===
@@ -100,14 +100,14 @@ When you are ready, proceed to xref:01-tool-calling-fundamentals.adoc[Module 1: 
 
 == Powered by Intel
 
-AI inference in this lab runs on **Intel** hardware via the Red Hat Demo Platform.
+This lab supports the Red Hat + Intel AI inference learning path. Backend placement must be verified by the platform owner before presenting Intel hardware results.
 
 [cols="1,2",options="header"]
 |===
 |Component |Details
 
 |**LLM Inference**
-|{maas_model} on Intel via Model-as-a-Service
+|{maas_model} via Model-as-a-Service; serving placement requires verification
 |===
 
 TIP: This lab is part of the Red Hat + Intel AI Inference Partnership.
