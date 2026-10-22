@@ -1,10 +1,8 @@
-# Module 5: Build a Multi-Tool Application
+# Build a Multi-Tool Application
 
-Migration source: `content/modules/ROOT/pages/05-multi-tool-app.adoc`.
+Learner source: `content/modules/ROOT/pages/05-multi-tool-app.adoc`.
 
-Planned time: 15 minutes.
-
-Existing exercise sections:
+Planned time: 15 minutes; independent timing remains pending.
 
 - Know: When Tool Calling Becomes Agentic
 - Add a Third Tool
@@ -14,4 +12,4 @@ Existing exercise sections:
 - Key Insight
 - Checkpoint
 
-Acceptance: replay the source steps, verify observable results and obtain author/reviewer acceptance. Existing content is retained; migration does not mark this module complete.
+Acceptance: replay the live model-selected sequence, verify the employee lookup result precedes and supplies the weather location, inspect the final answer and missing-product behavior, and obtain author/reviewer acceptance. Offline regression success does not prove live serving capability or accurate final prose.

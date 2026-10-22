@@ -4,11 +4,11 @@ Tracking: [GPTEINFRA-17784](https://issues.redhat.com/browse/GPTEINFRA-17784); [
 
 ## Reviewable fixes
 
-The actual Module 4 loop now rejects text-only replies when a tool is required, validates tool arguments before dispatch, records successful tools, rejects empty final answers, and fails at the round limit. A synthetic SDK regression replays the tool-call/result/final-answer history. Module 2 now distinguishes basic generation from tool capability.
+The actual Module 4 loop now rejects text-only replies when a tool is required, validates tool arguments before dispatch, records successful tools, rejects empty final answers, and fails at the round limit. A synthetic SDK regression replays the tool-call/result/final-answer history. Module 2 now distinguishes basic generation from tool capability. Module 5 now validates arguments, correlation IDs, tool/round budgets and required-tool completion. Its dependent employee/weather query requires a prior-round employee result and the returned office; a same-round city guess cannot count as successful data flow. Fourteen additional synthetic regressions execute the actual multi-tool learner code.
 
 ## Verification boundary
 
-18 local regression tests pass (including eight author-workspace auth checks). Antora 3.1.14 builds the current learner source. These are offline author-package results; synthetic service replies do not establish real model or catalog acceptance.
+32 local regression tests pass (including eight author-workspace auth checks). Antora 3.1.14 builds the current learner source. These are offline author-package results; synthetic service replies do not establish real model or catalog acceptance.
 
 Fresh Dallas October 22 checks: granite-3-2-8b-instruct-cpu returned HTTP 400; qwen25-3b-cpu returned no structured tool_calls; qwen3-14b was not allocated. No full live tool round trip passed. The model/parser/chat-template combination is still an infrastructure gate; Oberon is an alternate dev candidate, not yet verified.
 

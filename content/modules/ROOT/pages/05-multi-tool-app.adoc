@@ -2,7 +2,7 @@
 
 _Estimated time: 15 minutes_
 
-In this module you will extend your tool calling application with a third tool, test queries that require multiple chained tool calls, implement error handling, and add logging to trace the model's reasoning. This is where tool calling becomes agentic -- the model plans a sequence of actions to answer a complex question.
+In this module you will extend your tool calling application with a third tool, test queries that require multiple chained tool calls, implement error handling, and add logging to trace observable tool requests and results. This is where tool calling becomes agentic -- the model plans a sequence of actions to answer a complex question.
 
 == Know: When Tool Calling Becomes Agentic
 
@@ -30,7 +30,7 @@ import json
 import os
 from openai import OpenAI
 
-client = OpenAI(base_url=os.environ["MODEL_URL"], api_key=os.environ["MODEL_API_KEY"])
+client = OpenAI(base_url=os.environ["MODEL_URL"], api_key=os.environ["MODEL_API_KEY"], timeout=60, max_retries=1)
 MODEL = os.environ["MODEL_NAME"]
 
 # --- Three Tool Definitions ---
@@ -68,7 +68,7 @@ def get_weather(location: str) -> dict:
     for city, weather in data.items():
         if city.lower() in location.lower():
             return weather
-    return {"temp": 70, "unit": "F", "condition": "clear", "humidity": 50}
+    return {"error": "Location is not in this synthetic dataset"}
 
 def lookup_employee(employee_id: int) -> dict:
     employees = {
@@ -92,54 +92,86 @@ TOOL_FUNCTIONS = {
     "check_inventory": check_inventory,
 }
 
-# --- Tool Calling Loop with Logging ---
-def run_query(user_message: str):
-    print(f"\n{'='*60}")
-    print(f"USER: {user_message}")
-    print(f"{'='*60}")
+# --- Validate model-produced arguments before dispatch ---
+def parse_arguments(name, raw):
+    fields = {"get_weather": ("location", str),
+              "lookup_employee": ("employee_id", int),
+              "check_inventory": ("product", str)}
+    if name not in fields:
+        raise ValueError("Unknown function")
+    args = json.loads(raw)
+    field, kind = fields[name]
+    if not isinstance(args, dict) or set(args) != {field} or type(args[field]) is not kind:
+        raise ValueError("Invalid function arguments")
+    if kind is str and not args[field].strip():
+        raise ValueError("Empty function argument")
+    return args
 
+
+# --- Tool Calling Loop with Logging ---
+def run_query(user_message, expected_tools=(), require_employee_weather=False):
+    print(f"\nUSER: {user_message}")
     messages = [{"role": "user", "content": user_message}]
+    completed_tools = set()
+    used_ids = set()
+    employee_office = None
     step = 0
 
-    while step < 10:
+    for round_number in range(8):
         response = client.chat.completions.create(
             model=MODEL, messages=messages, tools=tools, tool_choice="auto",
         )
         msg = response.choices[0].message
-
-        if not msg.tool_calls:
+        calls = msg.tool_calls or []
+        if not calls:
+            if not set(expected_tools) <= completed_tools:
+                raise RuntimeError("Required tools did not complete successfully")
+            if not isinstance(msg.content, str) or not msg.content.strip():
+                raise RuntimeError("Model returned an empty final answer")
             print(f"\nASSISTANT: {msg.content}")
-            return
-
+            return msg.content
+        # Reject the whole batch before dispatch if it exceeds the remaining
+        # tool budget or cannot correlate each result to one unique call.
+        ids = [tc.id for tc in calls]
+        if step + len(calls) > 10:
+            raise RuntimeError("Tool call budget exceeded")
+        if any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids) or used_ids.intersection(ids):
+            raise RuntimeError("Tool call identifiers must be nonempty and unique")
+        used_ids.update(ids)
         messages.append(msg)
-        for tc in msg.tool_calls:
+        office_before_round = employee_office
+        for tc in calls:
             fn_name = tc.function.name
-            fn_args = json.loads(tc.function.arguments)
+            try:
+                args = parse_arguments(fn_name, tc.function.arguments)
+                # This exercise must use a returned employee office, not a
+                # city guessed before the employee lookup result was seen.
+                if require_employee_weather and fn_name == "get_weather":
+                    if not office_before_round or args["location"].strip().casefold() != office_before_round.casefold():
+                        raise ValueError("Look up the employee first, then use the returned office")
+                result = TOOL_FUNCTIONS[fn_name](**args)
+            except (ValueError, TypeError):
+                result = {"error": "Invalid tool request; check the declared schema and prior results"}
+            if "error" not in result:
+                completed_tools.add(fn_name)
+                if fn_name == "lookup_employee":
+                    employee_office = result["office"]
             step += 1
-            print(f"\n  Step {step}: {fn_name}({json.dumps(fn_args)})")
-
-            # Dispatch with error handling
-            if fn_name not in TOOL_FUNCTIONS:
-                result = {"error": f"Unknown function '{fn_name}'"}
-            else:
-                try:
-                    result = TOOL_FUNCTIONS[fn_name](**fn_args)
-                except Exception as e:
-                    result = {"error": str(e)}
-
-            result_str = json.dumps(result)
-            print(f"         -> {result_str}")
-            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str})
+            print(f"  Step {step}: {fn_name} -> {json.dumps(result)}")
+            messages.append({"role": "tool", "tool_call_id": tc.id,
+                             "content": json.dumps(result)})
+    raise RuntimeError("Tool round limit reached without a final answer")
 
 # --- Test Queries ---
 # Query 1: Single tool call
-run_query("What is the weather in Boston?")
+run_query("What is the weather in Boston?", expected_tools={"get_weather"})
 
 # Query 2: Single tool call with a different tool
-run_query("Check if we have any laptop-15 units in stock.")
+run_query("Check if we have any laptop-15 units in stock.", expected_tools={"check_inventory"})
 
 # Query 3: Multi-step -- requires TWO tool calls in sequence
-run_query("What is the weather in the city where employee 12345 works?")
+run_query("What is the weather in the city where employee 12345 works?",
+          expected_tools={"lookup_employee", "get_weather"}, require_employee_weather=True)
 PYEOF
 ----
 
@@ -172,7 +204,13 @@ For Query 3 ("What is the weather in the city where employee 12345 works?"), you
 A: The weather in Boston, where Alice Johnson works, is 72°F and partly cloudy...
 ----
 
-If the model calls both tools in a single turn (parallel calls) instead of sequentially, that is also valid -- it means the model can handle parallel tool execution. If it only calls one tool and answers with incomplete information, the model may not support multi-step reasoning well.
+For this dependent query, the employee lookup must finish before the model
+chooses a weather location. Two calls in the first response do not prove that
+weather used the returned office; the model could have guessed the city. The
+loop returns a structured error for that premature call and requires a later
+weather call using the returned office. Parallel calls are appropriate for
+independent requests, not this data dependency. Inspect the final answer too:
+successful tool execution does not by itself prove that its text is accurate.
 
 == Test Error Handling
 
@@ -305,7 +343,7 @@ Multi-step tool calling is where agents begin. The model is not just answering q
 |The `tools` array may be empty or malformed. Print it with `print(json.dumps(tools, indent=2))` to verify.
 
 |`TypeError` on function dispatch
-|The model may be sending arguments with wrong types (e.g., string instead of integer for `employee_id`). Add type coercion in the dispatch: `int(fn_args.get("employee_id", 0))`.
+|The model may be sending arguments with wrong types (e.g., string instead of integer for `employee_id`). The dispatch rejects wrong types and returns a structured error; do not silently coerce arbitrary model output into a valid request.
 |===
 
 == Checkpoint
